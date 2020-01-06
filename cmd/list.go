@@ -16,6 +16,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"sort"
@@ -44,6 +45,29 @@ type listEntry struct {
 	name   string
 	claims jwt.Claims
 	err    error
+}
+
+type listEntryJSON struct {
+	Name   string
+	Claims jwt.Claims
+	err    error
+}
+
+func (l *listEntry) getJSONType() *listEntryJSON {
+	lej := &listEntryJSON{
+		Name:   l.name,
+		Claims: l.claims,
+		err:    l.err,
+	}
+	return lej
+}
+
+func getJSON(listEntries []*listEntry) ([]byte, error) {
+	listEntriesJSON := make([]*listEntryJSON, 0)
+	for _, le := range listEntries {
+		listEntriesJSON = append(listEntriesJSON, le.getJSONType())
+	}
+	return json.Marshal(listEntriesJSON)
 }
 
 func createListOperatorsCmd() *cobra.Command {
@@ -211,6 +235,21 @@ func createListUsersCmd() *cobra.Command {
 }
 
 func listEntities(title string, infos []*listEntry, current string) string {
+	switch OutputFormatFlag {
+	case "table":
+		return listEntitiesTable(title, infos, current)
+	case "json":
+		return listEntitiesJSON(title, infos, current)
+	}
+	return ""
+}
+
+func listEntitiesJSON(title string, infos []*listEntry, current string) string {
+	jsonData, _ := getJSON(infos)
+	return string(jsonData)
+}
+
+func listEntitiesTable(title string, infos []*listEntry, current string) string {
 	table := tablewriter.CreateTable()
 	table.UTF8Box()
 	table.AddTitle(title)
