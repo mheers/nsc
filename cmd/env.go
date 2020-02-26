@@ -16,6 +16,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -49,7 +50,12 @@ func createEnvCmd() *cobra.Command {
 			if err := params.Run(cmd); err != nil {
 				return err
 			}
-			params.PrintEnv(cmd)
+			switch OutputFormatFlag {
+			case "table":
+				params.PrintEnv(cmd)
+			case "json":
+				params.PrintEnvJSON(cmd)
+			}
 			return nil
 		},
 	}
@@ -102,4 +108,30 @@ func (p *SetContextParams) PrintEnv(cmd *cobra.Command) {
 	table.AddRow("Default Operator", "", conf.Operator)
 	table.AddRow("Default Account", "", conf.Account)
 	cmd.Println(table.Render())
+}
+
+type Environment struct {
+	NKeysPath       string
+	NSCHome         string
+	Config          string
+	FromCWD         bool
+	StoresDir       string
+	DefaultOperator string
+	DefaultAccount  string
+}
+
+func (p *SetContextParams) PrintEnvJSON(cmd *cobra.Command) {
+	conf := GetConfig()
+
+	environment := &Environment{
+		NKeysPath:       store.GetKeysDir(),
+		NSCHome:         toolHome,
+		Config:          conf.configFile(),
+		FromCWD:         GetCwdCtx() != nil,
+		StoresDir:       conf.StoreRoot,
+		DefaultOperator: conf.Operator,
+		DefaultAccount:  conf.Account,
+	}
+	data, _ := json.Marshal(environment)
+	cmd.Println(string(data))
 }
