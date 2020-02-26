@@ -170,7 +170,7 @@ func init() {
 func HoistRootFlags(cmd *cobra.Command) *cobra.Command {
 	cmd.PersistentFlags().StringVarP(&KeyPathFlag, "private-key", "K", "", "private key")
 	cmd.PersistentFlags().BoolVarP(&InteractiveFlag, "interactive", "i", false, "ask questions for various settings")
-	cmd.PersistentFlags().StringVarP(&OutputFormatFlag, "output-format", "f", "table", "format [json|table]")
+	cmd.PersistentFlags().StringVarP(&OutputFormatFlag, "output-format", "O", "table", "format [json|table]")
 	return cmd
 }
 
