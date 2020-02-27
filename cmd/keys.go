@@ -33,7 +33,8 @@ var keysCmd = &cobra.Command{
 func init() {
 	GetRootCmd().AddCommand(keysCmd)
 	keysCmd.AddCommand(createMigrateKeysCmd())
-	keysCmd.AddCommand(createGetNKeysCmd())
+	keysCmd.AddCommand(createGetNKeysUserCmd())
+	keysCmd.AddCommand(createGetNKeysAccountCmd())
 }
 
 func createMigrateKeysCmd() *cobra.Command {
@@ -65,10 +66,10 @@ func createMigrateKeysCmd() *cobra.Command {
 	return cmd
 }
 
-func createGetNKeysCmd() *cobra.Command {
+func createGetNKeysUserCmd() *cobra.Command {
 	var params GetKeysParams
 	var cmd = &cobra.Command{
-		Use:   "get",
+		Use:   "get-user",
 		Short: "prints the contents of the credentialsfile (.creds) for a specific user",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// cmd.Print("here:", params.Account)
@@ -104,6 +105,44 @@ func createGetNKeysCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&params.Operator, "operator", "", "", "export specified operator key")
 	cmd.Flags().StringVarP(&params.Account, "account", "", "", "change account context to the named account")
 	cmd.Flags().StringVarP(&params.User, "user", "", "", "export specified user key")
+
+	return cmd
+}
+
+func createGetNKeysAccountCmd() *cobra.Command {
+	var params GetKeysParams
+	var cmd = &cobra.Command{
+		Use:   "get-account",
+		Short: "prints the contents of the credentialsfile (.creds) for a specific user",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			conf := GetConfig()
+			filename := conf.StoreRoot + "/" + params.Operator + "/accounts/" + params.Account + "/" + params.Account + ".jwt"
+			file, err := os.Open(filename)
+			if err != nil {
+				return errors.New("credsfile not found")
+			}
+			defer file.Close()
+
+			content, err := ioutil.ReadFile(filepath.FromSlash(filename))
+			if err != nil {
+				return err
+			}
+			cmd.Print(string(content))
+			return nil
+		},
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if params.Operator == "" {
+				return errors.New("operator flag may not be empty")
+			}
+			if params.Account == "" {
+				return errors.New("account flag may not be empty")
+			}
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVarP(&params.Operator, "operator", "", "", "export specified operator key")
+	cmd.Flags().StringVarP(&params.Account, "account", "", "", "change account context to the named account")
 
 	return cmd
 }
