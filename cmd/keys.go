@@ -16,6 +16,11 @@
 package cmd
 
 import (
+	"errors"
+	"io/ioutil"
+	"os"
+	"path/filepath"
+
 	"github.com/nats-io/nsc/cmd/store"
 	"github.com/spf13/cobra"
 )
@@ -28,6 +33,7 @@ var keysCmd = &cobra.Command{
 func init() {
 	GetRootCmd().AddCommand(keysCmd)
 	keysCmd.AddCommand(createMigrateKeysCmd())
+	keysCmd.AddCommand(createGetNKeysCmd())
 }
 
 func createMigrateKeysCmd() *cobra.Command {
@@ -57,4 +63,53 @@ func createMigrateKeysCmd() *cobra.Command {
 	}
 
 	return cmd
+}
+
+func createGetNKeysCmd() *cobra.Command {
+	var params GetKeysParams
+	var cmd = &cobra.Command{
+		Use:   "get",
+		Short: "prints the contents of the credentialsfile (.creds) for a specific user",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			// cmd.Print("here:", params.Account)
+			// cmd.Print("here:", store.GetKeysDir())
+			filename := store.GetKeysDir() + "/creds/" + params.Operator + "/" + params.Account + "/" + params.User + ".creds"
+			file, err := os.Open(filename)
+			if err != nil {
+				return errors.New("credsfile not found")
+			}
+			defer file.Close()
+
+			content, err := ioutil.ReadFile(filepath.FromSlash(filename))
+			if err != nil {
+				return err
+			}
+			cmd.Print(string(content))
+			return nil
+		},
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if params.Operator == "" {
+				return errors.New("operator flag may not be empty")
+			}
+			if params.Account == "" {
+				return errors.New("account flag may not be empty")
+			}
+			if params.User == "" {
+				return errors.New("user flag may not be empty")
+			}
+			return nil
+		},
+	}
+
+	cmd.Flags().StringVarP(&params.Operator, "operator", "", "", "export specified operator key")
+	cmd.Flags().StringVarP(&params.Account, "account", "", "", "change account context to the named account")
+	cmd.Flags().StringVarP(&params.User, "user", "", "", "export specified user key")
+
+	return cmd
+}
+
+type GetKeysParams struct {
+	Account  string
+	User     string
+	Operator string
 }
